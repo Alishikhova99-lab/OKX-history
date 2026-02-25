@@ -1,0 +1,61 @@
+import type { FastifyInstance } from 'fastify'
+import { env } from '../config/env.js'
+import { setUserApiCredentials } from '../db/usersRepo.js'
+import { delCache } from '../services/cache.js'
+import { encryptSecret } from '../services/crypto.js'
+import { OkxHttpError, validateOkxCredentials } from '../services/okxClient.js'
+import { resolveUserByInitData } from '../services/userService.js'
+
+export const registerApiKeyRoutes = async (app: FastifyInstance): Promise<void> => {
+  app.post('/api/register', async (request, reply) => {
+    const body = request.body as
+      | {
+          initData?: string
+          apiKey?: string
+          secretKey?: string
+          passphrase?: string
+        }
+      | undefined
+
+    const initData = body?.initData?.trim() ?? ''
+    const apiKey = body?.apiKey?.trim() ?? ''
+    const secretKey = body?.secretKey?.trim() ?? ''
+    const passphrase = body?.passphrase?.trim() ?? ''
+
+    if (!initData || !apiKey || !secretKey) {
+      return reply.status(400).send({ message: 'initData, apiKey, secretKey are required' })
+    }
+
+    let user
+    try {
+      user = await resolveUserByInitData(initData)
+    } catch {
+      return reply.status(401).send({ message: 'Invalid Telegram initData' })
+    }
+
+    try {
+      await validateOkxCredentials({ apiKey, secretKey, passphrase })
+    } catch (error) {
+      if (error instanceof OkxHttpError) {
+        return reply.status(error.statusCode).send({ message: error.message })
+      }
+      throw error
+    }
+
+    await setUserApiCredentials({
+      userId: user.id,
+      encryptedApiKey: encryptSecret(apiKey),
+      encryptedSecret: encryptSecret(secretKey),
+      encryptedPassphrase: passphrase ? encryptSecret(passphrase) : null,
+      apiConnected: true,
+    })
+
+    await delCache(`user:${user.telegramId}`, `overview:${user.id}`, `trades:${user.id}`)
+
+    return {
+      ok: true,
+      apiConnected: true,
+      cacheTtlSeconds: env.cacheTtlSeconds,
+    }
+  })
+}
