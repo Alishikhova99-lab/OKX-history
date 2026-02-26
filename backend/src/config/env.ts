@@ -38,7 +38,7 @@ export const env = {
   host: process.env.HOST ?? '0.0.0.0',
   databaseUrl,
   redisUrl: process.env.REDIS_URL ?? '',
-  telegramBotToken: requireEnv('TELEGRAM_BOT_TOKEN'),
+  telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? '',
   frontendUrl: process.env.FRONTEND_URL ?? '',
   backendPublicUrl: process.env.BACKEND_PUBLIC_URL ?? '',
   masterEncryptionKey: Buffer.from(masterKeyHex, 'hex'),

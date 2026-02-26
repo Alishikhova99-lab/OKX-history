@@ -1,6 +1,6 @@
 # OKX Backend (Telegram Mini App)
 
-Backend for `/Users/alishikhov.yakub/OKX history`.
+Backend for `OKX History Telegram Mini App`.
 
 ## Stack
 
@@ -60,7 +60,7 @@ Creates:
 1. Go to backend folder:
 
 ```bash
-cd "/Users/alishikhov.yakub/OKX history/backend"
+cd "/Users/alishikhov.yakub/Documents/New project/backend"
 ```
 
 2. Install deps:

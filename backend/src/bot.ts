@@ -1,6 +1,10 @@
 import TelegramBot from 'node-telegram-bot-api'
 import { env } from './config/env.js'
 
+if (!env.telegramBotToken) {
+  throw new Error('Missing TELEGRAM_BOT_TOKEN for bot worker')
+}
+
 const bot = new TelegramBot(env.telegramBotToken, { polling: true })
 
 const fallbackMiniAppUrl = env.backendPublicUrl ? `${env.backendPublicUrl.replace(/\/$/, '')}/miniapp` : ''

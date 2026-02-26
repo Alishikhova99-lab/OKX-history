@@ -55,6 +55,10 @@ export const buildApp = async () => {
     return reply.sendFile('miniapp/index.html')
   })
 
+  app.get('/miniapp/', async (_request, reply) => {
+    return reply.sendFile('miniapp/index.html')
+  })
+
   app.get('/health', async () => {
     const db = await pgPool.query('SELECT NOW() AS now')
     return {

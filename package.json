@@ -6,6 +6,9 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "build:miniapp": "VITE_BASE_PATH=/miniapp/ npm run build && rm -rf backend/public/miniapp && mkdir -p backend/public/miniapp && cp -R dist/. backend/public/miniapp/",
+    "backend:build": "npm run build --prefix backend",
+    "backend:start": "npm run start --prefix backend",
     "lint": "eslint .",
     "preview": "vite preview"
   },

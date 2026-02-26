@@ -1,58 +1,64 @@
-# OKX History Mini App
+# OKX History (Frontend + Backend)
 
-Проект находится в папке:
+В этой папке теперь есть обе части:
 
-`/Users/alishikhov.yakub/OKX history`
+- `frontend` (Vite + React + TypeScript) — в корне проекта.
+- `backend` (Fastify + PostgreSQL + Telegram bot worker) — в папке `backend/`.
 
-## Структура
+## Что уже добавлено
 
-- `src/` — frontend (React + Vite)
-- `backend/` — backend (Fastify + TypeScript + PostgreSQL + Redis)
+- Полный backend (`backend/src`, `backend/sql`, `backend/public`, `backend/.env.example`).
+- `render.yaml` для деплоя web + worker на Render.
+- Сборка фронтенда в формат Mini App (`/miniapp`).
 
-## Frontend
+## Команды
+
+Установить зависимости фронта:
 
 ```bash
-cd "/Users/alishikhov.yakub/OKX history"
 npm i
-npm run dev
 ```
 
-## Backend
+Установить зависимости бэка:
 
 ```bash
-cd "/Users/alishikhov.yakub/OKX history/backend"
-cp .env.example .env
-npm i
-npm run dev
+npm i --prefix backend
 ```
 
-TypeScript проверка backend:
-
-```bash
-npm run lint
-```
-
-Сборка backend:
+Собрать фронтенд:
 
 ```bash
 npm run build
 ```
 
-Render template:
+Собрать backend:
 
-- `render.yaml` in project root defines web + worker services.
+```bash
+npm run backend:build
+```
 
-## Основные backend endpoint-ы
+Собрать фронтенд и положить в `backend/public/miniapp`:
+
+```bash
+npm run build:miniapp
+```
+
+Запуск backend:
+
+```bash
+npm run backend:start
+```
+
+## Render (минимум)
+
+В `backend` env должны быть:
+
+- `DATABASE_URL`
+- `MASTER_ENCRYPTION_KEY` (64 hex символа)
+- `TELEGRAM_BOT_TOKEN` (для worker)
+- `FRONTEND_URL` (например `https://<your-service>.onrender.com/miniapp`)
+
+Проверка после деплоя:
 
 - `GET /health`
 - `GET /miniapp`
-- `POST /auth/telegram`
-- `POST /api/register`
-- `GET /api/trades?cursor=...&limit=50&symbol=...`
-- `GET /api/overview`
-- `POST /api/sync`
-- `GET /api/health`
-
-Подробности по backend в:
-
-`/Users/alishikhov.yakub/OKX history/backend/README.md`
