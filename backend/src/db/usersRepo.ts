@@ -75,6 +75,21 @@ export const setUserApiCredentials = async (args: {
   )
 }
 
+export const clearUserApiCredentials = async (userId: number): Promise<void> => {
+  await pgPool.query(
+    `
+      UPDATE users
+      SET encrypted_api_key = NULL,
+          encrypted_secret = NULL,
+          encrypted_passphrase = NULL,
+          api_connected = FALSE,
+          updated_at = NOW()
+      WHERE id = $1
+    `,
+    [userId],
+  )
+}
+
 export const setApiConnectedFlag = async (userId: number, apiConnected: boolean): Promise<void> => {
   await pgPool.query('UPDATE users SET api_connected = $2, updated_at = NOW() WHERE id = $1', [userId, apiConnected])
 }

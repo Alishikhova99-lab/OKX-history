@@ -1,21 +1,13 @@
 import type { AuthResponse, HistoryResponse, OverviewData, ProfileData, Trade } from '../types/models'
-import { getTelegramProfile } from './telegram'
+import { getTelegramInitData, getTelegramProfile } from './telegram'
+
+const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined)?.replace(/\/$/, '') ?? ''
+const DEFAULT_LAST_SYNC = '—'
 
 const STORAGE_KEYS = {
-  hasApi: 'okx_mock_has_api',
   onboarding: 'okx_onboarding_completed',
-  lastSync: 'okx_mock_last_sync',
+  lastSync: 'okx_last_sync',
   profileOverrides: 'okx_profile_overrides',
-}
-
-const symbols = ['BTCUSDT', 'ETHUSDT', 'SOLUSDT', 'XRPUSDT', 'DOGEUSDT', 'AVAXUSDT']
-const iconMap: Record<string, string> = {
-  BTCUSDT: '₿',
-  ETHUSDT: 'Ξ',
-  SOLUSDT: '◎',
-  XRPUSDT: '✕',
-  DOGEUSDT: 'Ð',
-  AVAXUSDT: 'A',
 }
 
 type ProfileOverrides = {
@@ -24,9 +16,22 @@ type ProfileOverrides = {
   avatar?: string
 }
 
-let hasApi = localStorage.getItem(STORAGE_KEYS.hasApi) === '1'
+type BackendTrade = {
+  id?: string | number
+  symbol?: string
+  entryPrice?: string | number
+  exitPrice?: string | number
+  quantity?: string | number
+  buyTotal?: string | number
+  sellTotal?: string | number
+  pnl?: string | number
+  pnlPercent?: string | number
+  entryTime?: string
+  exitTime?: string
+}
+
 let onboardingCompleted = localStorage.getItem(STORAGE_KEYS.onboarding) === '1'
-let lastSync = localStorage.getItem(STORAGE_KEYS.lastSync) || new Date().toISOString()
+let lastSync = localStorage.getItem(STORAGE_KEYS.lastSync) || DEFAULT_LAST_SYNC
 let profileOverrides: ProfileOverrides = (() => {
   const raw = localStorage.getItem(STORAGE_KEYS.profileOverrides)
 
@@ -41,83 +46,171 @@ let profileOverrides: ProfileOverrides = (() => {
   }
 })()
 
-const delay = (_ms: number) => Promise.resolve()
-
-const generateTrades = (): Trade[] => {
-  return Array.from({ length: 500 }, (_, i) => {
-    const symbol = symbols[i % symbols.length]
-    const buyPrice = Number((130 + i * 0.65 + (i % 9) * 2.4).toFixed(2))
-    const sellDelta = Number((((i % 16) - 7) * 1.75).toFixed(2))
-    const sellPrice = Number((buyPrice + sellDelta).toFixed(2))
-    const quantity = Number((0.15 + (i % 10) * 0.12).toFixed(4))
-    const spent = Number((buyPrice * quantity).toFixed(2))
-    const received = Number((sellPrice * quantity).toFixed(2))
-    const pnl = Number((received - spent).toFixed(2))
-    const pnlPercent = Number(((pnl / spent) * 100).toFixed(2))
-    const buyDateTime = new Date(Date.now() - (i * 2 + 3) * 3.6e6).toISOString()
-    const sellDateTime = new Date(Date.now() - i * 2 * 3.6e6).toISOString()
-
-    return {
-      id: `trade-${i + 1}`,
-      symbol,
-      buyPrice,
-      sellPrice,
-      quantity,
-      spent,
-      received,
-      pnl,
-      pnlPercent,
-      buyDateTime,
-      sellDateTime,
-      coinIcon: iconMap[symbol] ?? '•',
-    }
-  })
+const iconMap: Record<string, string> = {
+  BTC: '₿',
+  ETH: 'Ξ',
+  SOL: '◎',
+  XRP: '✕',
+  DOGE: 'Ð',
+  AVAX: 'A',
 }
 
-const trades = generateTrades()
-
-const persistState = () => {
-  localStorage.setItem(STORAGE_KEYS.hasApi, hasApi ? '1' : '0')
+const persistLocalState = () => {
   localStorage.setItem(STORAGE_KEYS.onboarding, onboardingCompleted ? '1' : '0')
   localStorage.setItem(STORAGE_KEYS.lastSync, lastSync)
   localStorage.setItem(STORAGE_KEYS.profileOverrides, JSON.stringify(profileOverrides))
 }
 
-export const authWithTelegram = async (_initData: string): Promise<AuthResponse> => {
-  await delay(700)
-  return { hasApi, onboardingCompleted }
+const readInitDataOrThrow = (): string => {
+  const initData = getTelegramInitData().trim()
+  if (!initData) {
+    throw new Error('Открой Mini App внутри Telegram')
+  }
+  return initData
+}
+
+const toNumber = (value: unknown): number => {
+  const parsed = Number(value)
+  return Number.isFinite(parsed) ? parsed : 0
+}
+
+const normalizeSymbol = (value: string): string => value.toUpperCase().replace(/[^A-Z0-9]/g, '')
+
+const getCoinIcon = (symbol: string): string => {
+  const normalized = normalizeSymbol(symbol)
+  const base = normalized.replace(/USDT$|USDC$|BUSD$/g, '').slice(0, 6)
+  return iconMap[base] ?? '•'
+}
+
+const mapTrade = (trade: BackendTrade, index: number): Trade => {
+  const symbolRaw = trade.symbol || 'UNKNOWN'
+  const symbol = normalizeSymbol(symbolRaw)
+  const buyDateTime = trade.entryTime || new Date().toISOString()
+  const sellDateTime = trade.exitTime || buyDateTime
+
+  return {
+    id: String(trade.id ?? `trade-${index}`),
+    symbol,
+    buyPrice: toNumber(trade.entryPrice),
+    sellPrice: toNumber(trade.exitPrice),
+    quantity: toNumber(trade.quantity),
+    spent: toNumber(trade.buyTotal),
+    received: toNumber(trade.sellTotal),
+    pnl: toNumber(trade.pnl),
+    pnlPercent: toNumber(trade.pnlPercent),
+    buyDateTime,
+    sellDateTime,
+    coinIcon: getCoinIcon(symbol),
+  }
+}
+
+const buildUrl = (path: string): string => `${API_BASE_URL}${path}`
+
+const parseErrorMessage = async (response: Response): Promise<string> => {
+  try {
+    const data = (await response.json()) as { message?: string }
+    if (data?.message) {
+      return data.message
+    }
+  } catch {
+    return response.statusText || 'Request failed'
+  }
+
+  return response.statusText || 'Request failed'
+}
+
+const request = async <T>(
+  path: string,
+  options: {
+    method?: 'GET' | 'POST' | 'DELETE'
+    body?: unknown
+    headers?: Record<string, string>
+  } = {},
+): Promise<T> => {
+  const response = await fetch(buildUrl(path), {
+    method: options.method ?? 'GET',
+    headers: {
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers ?? {}),
+    },
+    body: options.body ? JSON.stringify(options.body) : undefined,
+  })
+
+  if (!response.ok) {
+    throw new Error(await parseErrorMessage(response))
+  }
+
+  return (await response.json()) as T
+}
+
+export const authWithTelegram = async (initData: string): Promise<AuthResponse> => {
+  const rawInitData = initData.trim() || readInitDataOrThrow()
+  const data = await request<{ hasApi?: boolean }>('/auth/telegram', {
+    method: 'POST',
+    body: { initData: rawInitData },
+  })
+
+  return {
+    hasApi: Boolean(data.hasApi),
+    onboardingCompleted,
+  }
 }
 
 export const completeOnboarding = async (): Promise<void> => {
-  await delay(250)
   onboardingCompleted = true
-  persistState()
+  persistLocalState()
 }
 
-export const registerApi = async ({ apiKey, secretKey }: { apiKey: string; secretKey: string }): Promise<void> => {
-  await delay(850)
+export const registerApi = async ({
+  apiKey,
+  secretKey,
+  passphrase,
+}: {
+  apiKey: string
+  secretKey: string
+  passphrase?: string
+}): Promise<void> => {
+  const initData = readInitDataOrThrow()
+  const trimmedApiKey = apiKey.trim()
+  const trimmedSecretKey = secretKey.trim()
+  const trimmedPassphrase = passphrase?.trim() ?? ''
 
-  if (!apiKey || !secretKey) {
+  if (!trimmedApiKey || !trimmedSecretKey) {
     throw new Error('Поля API Key и Secret Key обязательны')
   }
 
-  hasApi = true
+  await request('/api/register', {
+    method: 'POST',
+    body: {
+      initData,
+      apiKey: trimmedApiKey,
+      secretKey: trimmedSecretKey,
+      passphrase: trimmedPassphrase,
+    },
+  })
+
   lastSync = new Date().toISOString()
-  persistState()
+  persistLocalState()
 }
 
 export const getOverview = async (): Promise<OverviewData> => {
-  await delay(500)
-  const totalPnl = trades.slice(0, 200).reduce((sum, t) => sum + t.pnl, 0)
-  const todayPnl = trades
-    .filter((trade) => Date.now() - new Date(trade.sellDateTime).getTime() < 24 * 3.6e6)
-    .reduce((sum, t) => sum + t.pnl, 0)
+  const initData = readInitDataOrThrow()
+  const data = await request<{
+    totalBalance?: string | number
+    totalPnl?: string | number
+    todayPnl?: string | number
+    recentTrades?: BackendTrade[]
+  }>('/api/overview', {
+    headers: {
+      'x-telegram-init-data': initData,
+    },
+  })
 
   return {
-    totalBalance: 12984.37,
-    totalPnl: Number(totalPnl.toFixed(2)),
-    todayPnl: Number(todayPnl.toFixed(2)),
-    recentTrades: trades.slice(0, 5),
+    totalBalance: toNumber(data.totalBalance),
+    totalPnl: toNumber(data.totalPnl),
+    todayPnl: toNumber(data.todayPnl),
+    recentTrades: (data.recentTrades ?? []).map(mapTrade),
   }
 }
 
@@ -130,41 +223,59 @@ export const getHistory = async ({
   cursor?: string
   query?: string
 }): Promise<HistoryResponse> => {
-  await delay(450)
+  const initData = readInitDataOrThrow()
+  const params = new URLSearchParams()
+  params.set('limit', String(limit))
 
-  const normalizedQuery = query?.trim().toUpperCase()
-  const source = normalizedQuery
-    ? trades.filter((trade) => trade.symbol.toUpperCase().includes(normalizedQuery))
-    : trades
+  if (cursor) {
+    params.set('cursor', cursor)
+  }
 
-  const start = cursor ? Number(cursor) : 0
-  const page = source.slice(start, start + limit)
-  const next = start + page.length
+  const symbol = query?.trim().toUpperCase()
+  if (symbol) {
+    params.set('symbol', symbol)
+  }
+
+  const data = await request<{
+    trades?: BackendTrade[]
+    hasMore?: boolean
+    nextCursor?: string | null
+  }>(`/api/trades?${params.toString()}`, {
+    headers: {
+      'x-telegram-init-data': initData,
+    },
+  })
 
   return {
-    trades: page,
-    hasMore: next < source.length,
-    nextCursor: String(next),
+    trades: (data.trades ?? []).map(mapTrade),
+    hasMore: Boolean(data.hasMore),
+    nextCursor: data.nextCursor ?? '',
   }
 }
 
 export const getProfile = async (): Promise<ProfileData> => {
-  await delay(400)
   const tg = getTelegramProfile()
+  const auth = await authWithTelegram(getTelegramInitData())
 
   return {
     name: profileOverrides.name || tg.name,
     username: profileOverrides.username || tg.username,
     avatar: profileOverrides.avatar || tg.avatar,
-    apiConnected: hasApi,
+    apiConnected: auth.hasApi,
     lastSync,
-    maskedApi: hasApi ? '****8F3D' : 'Not connected',
+    maskedApi: auth.hasApi ? '****8F3D' : 'Not connected',
   }
 }
 
-export const updateProfile = async ({ name, username, avatar }: { name: string; username: string; avatar?: string }): Promise<void> => {
-  await delay(300)
-
+export const updateProfile = async ({
+  name,
+  username,
+  avatar,
+}: {
+  name: string
+  username: string
+  avatar?: string
+}): Promise<void> => {
   const normalizedName = name.trim()
   const normalizedUsername = username.trim().startsWith('@') ? username.trim() : `@${username.trim()}`
 
@@ -179,17 +290,32 @@ export const updateProfile = async ({ name, username, avatar }: { name: string; 
     avatar: avatar?.trim() || profileOverrides.avatar,
   }
 
-  persistState()
+  persistLocalState()
 }
 
 export const syncData = async (): Promise<void> => {
-  await delay(850)
+  const initData = readInitDataOrThrow()
+  const data = await request<{ status?: 'OK' | 'API_INVALID' }>('/api/sync', {
+    method: 'POST',
+    body: { initData },
+  })
+
+  if (data.status === 'API_INVALID') {
+    throw new Error('API ключ недействителен, подключи ключи заново')
+  }
+
   lastSync = new Date().toISOString()
-  persistState()
+  persistLocalState()
 }
 
 export const deleteApi = async (): Promise<void> => {
-  await delay(500)
-  hasApi = false
-  persistState()
+  const initData = readInitDataOrThrow()
+
+  await request('/api/register', {
+    method: 'DELETE',
+    body: { initData },
+  })
+
+  lastSync = DEFAULT_LAST_SYNC
+  persistLocalState()
 }

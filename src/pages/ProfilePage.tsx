@@ -8,6 +8,7 @@ export const ProfilePage = () => {
   const [profile, setProfile] = useState<ProfileData | null>(null)
   const [loading, setLoading] = useState(true)
   const [syncing, setSyncing] = useState(false)
+  const [error, setError] = useState('')
 
   const load = async () => {
     const data = await getProfile()
@@ -21,14 +22,27 @@ export const ProfilePage = () => {
 
   const refresh = async () => {
     setSyncing(true)
-    await syncData()
-    await load()
-    setSyncing(false)
+    setError('')
+
+    try {
+      await syncData()
+      await load()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка синхронизации')
+    } finally {
+      setSyncing(false)
+    }
   }
 
   const removeApi = async () => {
-    await deleteApi()
-    navigate('/api-register', { replace: true })
+    setError('')
+
+    try {
+      await deleteApi()
+      navigate('/api-register', { replace: true })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Ошибка удаления API')
+    }
   }
 
   if (loading || !profile) {
@@ -87,6 +101,8 @@ export const ProfilePage = () => {
         >
           Удалить API
         </button>
+
+        {error ? <p className="text-center text-sm text-[#ea3943]">{error}</p> : null}
       </div>
     </section>
   )

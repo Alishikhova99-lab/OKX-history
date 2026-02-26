@@ -1,6 +1,7 @@
 import type { ProfileData } from '../types/models'
 
 export const getTelegramWebApp = () => window.Telegram?.WebApp
+const defaultAvatarPath = `${import.meta.env.BASE_URL}default-avatar.svg`
 
 export const initTelegram = () => {
   const app = getTelegramWebApp()
@@ -8,7 +9,7 @@ export const initTelegram = () => {
   app?.expand?.()
 }
 
-export const getTelegramInitData = () => getTelegramWebApp()?.initData ?? 'mock-init-data'
+export const getTelegramInitData = () => getTelegramWebApp()?.initData ?? ''
 
 export const getTelegramTheme = () => getTelegramWebApp()?.themeParams ?? {}
 
@@ -19,7 +20,7 @@ export const getTelegramProfile = (): Pick<ProfileData, 'name' | 'username' | 'a
     return {
       name: 'Demo Trader',
       username: '@okx_user',
-      avatar: '/default-avatar.svg',
+      avatar: defaultAvatarPath,
     }
   }
 
@@ -28,6 +29,6 @@ export const getTelegramProfile = (): Pick<ProfileData, 'name' | 'username' | 'a
   return {
     name: fullName || 'Telegram User',
     username: user.username ? `@${user.username}` : '@unknown',
-    avatar: '/default-avatar.svg',
+    avatar: defaultAvatarPath,
   }
 }

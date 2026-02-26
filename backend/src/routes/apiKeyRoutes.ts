@@ -1,6 +1,6 @@
 import type { FastifyInstance } from 'fastify'
 import { env } from '../config/env.js'
-import { setUserApiCredentials } from '../db/usersRepo.js'
+import { clearUserApiCredentials, setUserApiCredentials } from '../db/usersRepo.js'
 import { delCache } from '../services/cache.js'
 import { encryptSecret } from '../services/crypto.js'
 import { OkxHttpError, validateOkxCredentials } from '../services/okxClient.js'
@@ -56,6 +56,30 @@ export const registerApiKeyRoutes = async (app: FastifyInstance): Promise<void> 
       ok: true,
       apiConnected: true,
       cacheTtlSeconds: env.cacheTtlSeconds,
+    }
+  })
+
+  app.delete('/api/register', async (request, reply) => {
+    const body = request.body as { initData?: string } | undefined
+    const initData = body?.initData?.trim() ?? ''
+
+    if (!initData) {
+      return reply.status(400).send({ message: 'initData is required' })
+    }
+
+    let user
+    try {
+      user = await resolveUserByInitData(initData)
+    } catch {
+      return reply.status(401).send({ message: 'Invalid Telegram initData' })
+    }
+
+    await clearUserApiCredentials(user.id)
+    await delCache(`user:${user.telegramId}`, `overview:${user.id}`, `trades:${user.id}`)
+
+    return {
+      ok: true,
+      apiConnected: false,
     }
   })
 }

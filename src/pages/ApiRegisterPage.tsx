@@ -6,7 +6,9 @@ export const ApiRegisterPage = () => {
   const navigate = useNavigate()
   const [apiKey, setApiKey] = useState('')
   const [secretKey, setSecretKey] = useState('')
+  const [passphrase, setPassphrase] = useState('')
   const [showSecret, setShowSecret] = useState(false)
+  const [showPassphrase, setShowPassphrase] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -24,9 +26,10 @@ export const ApiRegisterPage = () => {
     setError('')
 
     try {
-      await registerApi({ apiKey: trimmedApi, secretKey: trimmedSecret })
+      await registerApi({ apiKey: trimmedApi, secretKey: trimmedSecret, passphrase: passphrase.trim() })
       setApiKey('')
       setSecretKey('')
+      setPassphrase('')
       navigate('/overview', { replace: true })
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка подключения')
@@ -64,6 +67,23 @@ export const ApiRegisterPage = () => {
               onClick={() => setShowSecret((prev) => !prev)}
             >
               {showSecret ? 'Hide' : 'Show'}
+            </button>
+          </div>
+
+          <div className="glass flex h-14 items-center rounded-[24px] px-5">
+            <input
+              type={showPassphrase ? 'text' : 'password'}
+              value={passphrase}
+              onChange={(e) => setPassphrase(e.target.value)}
+              placeholder="Passphrase (optional)"
+              className="number h-full w-full bg-transparent outline-none"
+            />
+            <button
+              type="button"
+              className="text-xs text-[#9aa3b2]"
+              onClick={() => setShowPassphrase((prev) => !prev)}
+            >
+              {showPassphrase ? 'Hide' : 'Show'}
             </button>
           </div>
 

@@ -91,7 +91,7 @@ export const ProfileEditPage = () => {
         <article className="profile-hero rounded-[28px] border border-white/10 px-5 pb-8 pt-8 text-center">
           <div className="relative mx-auto h-[132px] w-[132px]">
             <img
-              src={selectedAvatar || '/default-avatar.svg'}
+              src={selectedAvatar || `${import.meta.env.BASE_URL}default-avatar.svg`}
               alt={profile.name}
               className="h-full w-full rounded-full object-cover"
               style={{ boxShadow: '0 6px 18px rgba(0,0,0,0.4)' }}

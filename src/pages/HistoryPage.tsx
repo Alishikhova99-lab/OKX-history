@@ -32,7 +32,7 @@ const TradeRow = ({ index, style, trades, onTradeClick }: RowComponentProps<RowP
 export const HistoryPage = () => {
   const [query, setQuery] = useState('')
   const [trades, setTrades] = useState<Trade[]>([])
-  const [cursor, setCursor] = useState('0')
+  const [cursor, setCursor] = useState<string | undefined>(undefined)
   const [hasMore, setHasMore] = useState(true)
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
@@ -52,9 +52,9 @@ export const HistoryPage = () => {
       query,
     })
 
-    setTrades((prev) => (reset ? result.trades : [...prev, ...result.trades]))
-    setCursor(result.nextCursor)
-    setHasMore(result.hasMore)
+      setTrades((prev) => (reset ? result.trades : [...prev, ...result.trades]))
+      setCursor(result.nextCursor || undefined)
+      setHasMore(result.hasMore)
 
     if (reset) {
       setLoading(false)
@@ -85,7 +85,7 @@ export const HistoryPage = () => {
           type="text"
           value={query}
           onChange={(e) => {
-            setCursor('0')
+            setCursor(undefined)
             setHasMore(true)
             setQuery(e.target.value.toUpperCase().trimStart())
           }}
