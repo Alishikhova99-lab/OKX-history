@@ -52,9 +52,9 @@ export const HistoryPage = () => {
       query,
     })
 
-      setTrades((prev) => (reset ? result.trades : [...prev, ...result.trades]))
-      setCursor(result.nextCursor || undefined)
-      setHasMore(result.hasMore)
+    setTrades((prev) => (reset ? result.trades : [...prev, ...result.trades]))
+    setCursor(result.nextCursor || undefined)
+    setHasMore(result.hasMore)
 
     if (reset) {
       setLoading(false)
