@@ -3,25 +3,23 @@ import { env } from './config/env.js'
 
 const bot = new TelegramBot(env.telegramBotToken, { polling: true })
 
-const buildStartMessage = (): string => {
-  if (!env.frontendUrl) {
-    return 'Bot is online. FRONTEND_URL is not configured yet.'
-  }
-  return 'Bot is online. Tap the button below to open the Mini App.'
-}
+const fallbackMiniAppUrl = env.backendPublicUrl ? `${env.backendPublicUrl.replace(/\/$/, '')}/miniapp` : ''
+const miniAppUrl = env.frontendUrl || fallbackMiniAppUrl
 
 bot.onText(/^\/start$/, async (message: TelegramBot.Message) => {
   const chatId = message.chat.id
-  const text = buildStartMessage()
+  const text = miniAppUrl
+    ? 'Bot is online. Tap the button below to open the Mini App.'
+    : 'Bot is online. Configure FRONTEND_URL or BACKEND_PUBLIC_URL.'
 
-  if (!env.frontendUrl) {
+  if (!miniAppUrl) {
     await bot.sendMessage(chatId, text)
     return
   }
 
   await bot.sendMessage(chatId, text, {
     reply_markup: {
-      inline_keyboard: [[{ text: 'Open Mini App', web_app: { url: env.frontendUrl } }]],
+      inline_keyboard: [[{ text: 'Open Mini App', web_app: { url: miniAppUrl } }]],
     },
   })
 })

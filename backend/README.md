@@ -31,7 +31,8 @@ npm run bot
 Required env for bot worker:
 
 - `TELEGRAM_BOT_TOKEN`
-- `FRONTEND_URL`
+- `FRONTEND_URL` (recommended)
+- `BACKEND_PUBLIC_URL` (fallback for `/miniapp` HTML page)
 
 ## Security model
 
