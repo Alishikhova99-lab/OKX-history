@@ -20,6 +20,19 @@ Backend for `/Users/alishikhov.yakub/OKX history`.
 - `POST /api/sync`
 - `GET /api/health`
 
+## Bot worker
+
+Run a separate worker service with:
+
+```bash
+npm run bot
+```
+
+Required env for bot worker:
+
+- `TELEGRAM_BOT_TOKEN`
+- `FRONTEND_URL`
+
 ## Security model
 
 - Telegram auth by `initData` signature verification.

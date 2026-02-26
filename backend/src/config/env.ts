@@ -34,6 +34,7 @@ export const env = {
   databaseUrl: requireEnv('DATABASE_URL'),
   redisUrl: process.env.REDIS_URL ?? '',
   telegramBotToken: requireEnv('TELEGRAM_BOT_TOKEN'),
+  frontendUrl: process.env.FRONTEND_URL ?? '',
   masterEncryptionKey: Buffer.from(masterKeyHex, 'hex'),
   okxApiBaseUrl: process.env.OKX_API_BASE_URL ?? 'https://www.okx.com',
   okxTimeoutMs: optionalInt('OKX_TIMEOUT_MS', 10000),
