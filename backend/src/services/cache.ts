@@ -8,6 +8,12 @@ export const redis = env.redisUrl
     })
   : null
 
+if (redis) {
+  redis.on('error', (error) => {
+    console.error('Redis connection error:', error.message)
+  })
+}
+
 export const getCache = async <T>(key: string): Promise<T | null> => {
   if (!redis) {
     return null

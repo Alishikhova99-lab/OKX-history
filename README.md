@@ -38,8 +38,14 @@ npm run lint
 npm run build
 ```
 
+Render template:
+
+- `render.yaml` in project root defines web + worker services.
+
 ## Основные backend endpoint-ы
 
+- `GET /health`
+- `GET /miniapp`
 - `POST /auth/telegram`
 - `POST /api/register`
 - `GET /api/trades?cursor=...&limit=50&symbol=...`

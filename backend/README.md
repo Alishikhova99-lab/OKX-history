@@ -13,6 +13,8 @@ Backend for `/Users/alishikhov.yakub/OKX history`.
 
 ## Endpoints
 
+- `GET /health`
+- `GET /miniapp`
 - `POST /auth/telegram`
 - `POST /api/register`
 - `GET /api/trades?cursor=...&limit=50&symbol=...`
@@ -81,6 +83,9 @@ npm run dev
 
 ## Notes
 
+- `/miniapp` is served from static files in `backend/public/miniapp`.
+- CORS allows Telegram WebApp and Render domains.
 - `POST /api/sync` returns `API_INVALID` if OKX returns 401, and sets `api_connected = false`.
 - `GET /api/trades` uses cursor-based pagination (`exit_time` cursor), default limit `50`.
 - Caching uses Redis with short TTL for trade payloads and longer TTL for user cache.
+- If `REDIS_URL` is missing, backend continues to work without cache.

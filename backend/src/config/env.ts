@@ -27,11 +27,16 @@ if (!/^[0-9a-fA-F]{64}$/.test(masterKeyHex)) {
   throw new Error('MASTER_ENCRYPTION_KEY must be 64 hex chars (32 bytes)')
 }
 
+const databaseUrl = requireEnv('DATABASE_URL')
+if (!databaseUrl.startsWith('postgres://') && !databaseUrl.startsWith('postgresql://')) {
+  throw new Error('DATABASE_URL must start with postgres:// or postgresql://')
+}
+
 export const env = {
   nodeEnv: process.env.NODE_ENV ?? 'development',
   port: optionalInt('PORT', 8000),
   host: process.env.HOST ?? '0.0.0.0',
-  databaseUrl: requireEnv('DATABASE_URL'),
+  databaseUrl,
   redisUrl: process.env.REDIS_URL ?? '',
   telegramBotToken: requireEnv('TELEGRAM_BOT_TOKEN'),
   frontendUrl: process.env.FRONTEND_URL ?? '',
