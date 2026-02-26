@@ -25,6 +25,10 @@ export const buildApp = async () => {
     timeWindow: '1 minute',
   })
 
+  app.get('/', async () => {
+    return { ok: true }
+  })
+
   app.get('/api/health', async () => {
     const db = await pgPool.query('SELECT NOW() AS now')
     return {
